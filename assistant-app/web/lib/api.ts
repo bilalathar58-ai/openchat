@@ -1,5 +1,17 @@
 import type { ModelSelection, ModelsResponse, Role, StreamMeta } from "@/lib/types";
 
+export interface ApiImage {
+  media_type: string;
+  /** Base64 without the data: prefix. */
+  data: string;
+}
+
+export interface ApiMessage {
+  role: Role;
+  content: string;
+  images?: ApiImage[];
+}
+
 /**
  * Requests go to `/api/*` on the same origin; `next.config.ts` rewrites them to
  * the FastAPI server (API_URL), so the browser never needs CORS.
@@ -20,7 +32,9 @@ async function errorMessage(res: Response): Promise<string> {
   try {
     const body = (await res.json()) as { detail?: unknown };
     if (typeof body.detail === "string") return body.detail;
-    if (Array.isArray(body.detail) && body.detail[0]?.msg) return String(body.detail[0].msg);
+    if (Array.isArray(body.detail) && body.detail[0]?.msg) {
+      return String(body.detail[0].msg).replace(/^Value error, /, "");
+    }
   } catch {
     /* not JSON */
   }
@@ -46,7 +60,7 @@ export async function fetchModels(refresh = false, signal?: AbortSignal): Promis
 }
 
 export interface StreamChatOptions {
-  messages: { role: Role; content: string }[];
+  messages: ApiMessage[];
   selection: ModelSelection;
   signal: AbortSignal;
   onMeta: (meta: StreamMeta) => void;
